@@ -1,9 +1,20 @@
 
+import logging
 from datetime import datetime
 import requests
+from PIL import Image
+from io import BytesIO
 from SECRETS import API_KEY
+import logging
 
-
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('error.log'),
+        logging.StreamHandler()
+    ]
+)
 
 class NASA_API():
     def __init__(self):
@@ -45,32 +56,34 @@ class NASA_API():
             print(f"Erro ao consultar a API: {e}")
             return None
 
-    def print_data(self, dados):
+    def get_image_url(self, dados):
         if not dados:
             return
+        image_link = dados.get('url', None)
 
-        print("-" * 40)
-        print(f"Data: {dados['date']}")
-        print(f"Título: {dados['title']}")
-        print(f"Tipo de Mídia: {dados['media_type']}")
+        return image_link
         
-        if dados['media_type'] == 'image':
-            print(f"URL da Imagem: {dados['url']}")
-        else:
-            print(f"URL do Vídeo: {dados['url']}")
+    def show_image(self,dados):
+        url = self.get_image_url(dados)
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                image_data = BytesIO(response.content)
+                image = Image.open(image_data)
+                image.show()
+            else: 
+                logging.error(f'Erro ao buscar a imagem: {response.status_code}')    
+        except Exception as e:
+            logging.error(f'Erro ao abrir a imagem: {e}')     
         
-        print(f"Explicação: {dados['explanation']}")
-        print("-" * 40)
 
-        
     
 
 def main():
     api = NASA_API()
     dados = api.consulta()
     if dados:
-        print(f"\nSucesso! Imagem encontrada: {dados.get('title')}")
-        print(f"URL: {dados.get('url')}")
+        api.show_image(dados)
 
 if __name__ == "__main__":
     main()  
